@@ -1,22 +1,15 @@
-import asyncio
 from fastapi import FastAPI
-from database import init_db, SessionLocal
-from models import User
+from .routers import items
+from .database import engine, Base
 
-
+# Создание таблиц
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-async def create_test_user():
-    async with SessionLocal() as session:
-        user = User(username="testuser", email="test@example.com", password="hashedpassword")
-        session.add(user)
-        await session.commit()
-
-async def lifespan(app):
-    await init_db()
+# Роуты
+app.include_router(items.router, prefix="/items", tags=["items"])
 
 @app.get("/")
-def root():
-    create_test_user()
-    return "Hello, world"
+def read_root():
+    return {"message": "Welcome to the API"}
