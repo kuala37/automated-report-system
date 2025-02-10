@@ -12,7 +12,7 @@ RUN npm install
 COPY . .
 
 # Сборка приложения
-RUN npm run build
+#RUN npm run build
 
 # Запуск сервера
 CMD ["npm", "start"]
