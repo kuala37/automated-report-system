@@ -1,4 +1,5 @@
 import asyncio
+from sqlalchemy.sql import text
 from fastapi import FastAPI
 from database import init_db, SessionLocal
 from models import User
@@ -9,10 +10,9 @@ async def lifespan(app: FastAPI):
 
     # Создание тестового пользователя
     async with SessionLocal() as session:
-        user_exists = await session.execute(
-            "SELECT 1 FROM users WHERE username = :username",
-            {"username": "testuser"},
-        )
+        query = text("SELECT 1 FROM users WHERE username = :username")
+        user_exists = await session.execute(query, {"username": "testuser"})
+
         if not user_exists.scalar():  # Проверяем, есть ли пользователь
             user = User(username="testuser", email="test@example.com", password="hashedpassword")
             session.add(user)
