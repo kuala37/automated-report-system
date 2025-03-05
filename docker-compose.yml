@@ -10,7 +10,7 @@ services:
       - db
       - neural-network  
     environment:
-      - NEURAL_NETWORK_URL=http://neural-network:8001  
+      - NEURAL_NETWORK_URL=http://neural-network:8001
 
   client:
     build: ./client
