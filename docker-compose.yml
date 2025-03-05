@@ -8,6 +8,9 @@ services:
       - ./server:/app
     depends_on:
       - db
+      - neural-network  
+    environment:
+      - NEURAL_NETWORK_URL=http://neural-network:8001  
 
   client:
     build: ./client
@@ -26,6 +29,15 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  neural-network:  # Новый сервис для нейросети
+    build: ./neural-network  # Папка с Dockerfile для нейросети
+    ports:
+      - "8001:8000"  # Порт для доступа к сервису нейросети
+    volumes:
+      - ./neural-network:/app
+    environment:
+      - MODEL_NAME=t5-small  # Модель, которую использует нейросеть
 
 volumes:
   postgres_data:
