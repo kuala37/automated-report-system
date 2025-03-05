@@ -1,8 +1,9 @@
-import asyncio
 from sqlalchemy.sql import text
 from fastapi import FastAPI
 from database import init_db, SessionLocal
-from models import User
+from models.models_test import User
+from routes.report import router as router_report
+
 
 async def lifespan(app: FastAPI):
     # Инициализация базы данных при старте приложения
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.include_router(router_report, prefix="/api", tags=["reports"])
+
 @app.get("/")
 async def root():
-    return {"message": "Hello, world"}
+    return {"message": "Hello, world8000"}
