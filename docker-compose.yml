@@ -30,14 +30,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  neural-network:  # Новый сервис для нейросети
-    build: ./neural-network  # Папка с Dockerfile для нейросети
+  neural-network:  
+    build: ./neural-network  
     ports:
-      - "8001:8000"  # Порт для доступа к сервису нейросети
+      - "8001:8000"  
     volumes:
       - ./neural-network:/app
     environment:
-      - MODEL_NAME=t5-small  # Модель, которую использует нейросеть
+      - MODEL_NAME=t5-small  
 
 volumes:
   postgres_data:
