@@ -1,24 +1,80 @@
-from fastapi import FastAPI
-from transformers import T5Tokenizer, T5ForConditionalGeneration
+import requests
+import uuid
+import json
 import os
+from dotenv import load_dotenv
 
-app = FastAPI()
 
-model_name = os.getenv("MODEL_NAME", "t5-small")
-tokenizer = T5Tokenizer.from_pretrained(model_name)
-tokenizer.pad_token = tokenizer.eos_token
-model = T5ForConditionalGeneration.from_pretrained(model_name)
+load_dotenv()
 
-@app.post("/generate-report")
-async def generate_report(data: dict):
-    prompt = data.get("prompt")
-    template = data.get("template")
-    input_text = f"generate report: {prompt} {template}"
-    inputs = tokenizer(input_text, return_tensors="pt", max_length=512, truncation=True)
-    outputs = model.generate(**inputs, max_length=512)
-    report = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return {"report": report}
+# Получение API-ключа
+AUTHORIZATION_KEY = os.getenv("GIGACHAT_API_KEY")
 
-@app.get("/")
-async def root():
-    return {"message": "8001"}
+# URL для получения токена
+OAUTH_URL = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+
+# Уникальный идентификатор запроса (RqUID)
+RqUID = str(uuid.uuid4())
+
+# Заголовки запроса для получения токена
+oauth_headers = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Accept': 'application/json',
+    'RqUID': RqUID,
+    'Authorization': f'Basic {AUTHORIZATION_KEY}'
+}
+
+# Данные для запроса токена
+oauth_payload = {
+    'scope': 'GIGACHAT_API_PERS'
+}
+
+# Получение Access Token
+oauth_response = requests.post(OAUTH_URL, headers=oauth_headers, data=oauth_payload, verify=False)
+
+if oauth_response.status_code == 200:
+    access_token = oauth_response.json().get("access_token")
+    print("Access Token получен:", access_token)
+
+    # URL для генерации текста
+    GENERATE_URL = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+
+    # Заголовки запроса для генерации текста
+    generate_headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': f'Bearer {access_token}'
+    }
+
+    # Данные для запроса
+    generate_data = {
+        "model": "GigaChat",
+        "messages": [
+            {
+                "role": "user",
+                "content": "Напиши подробный отчет о продажах за последний квартал."
+            }
+        ],
+        "stream": False,
+        "repetition_penalty": 1
+    }
+
+    # Отправка POST-запроса для генерации текста
+    generate_response = requests.post(
+        GENERATE_URL,
+        headers=generate_headers,
+        data=json.dumps(generate_data),
+        verify=False
+    )
+
+    # Проверка ответа
+    if generate_response.status_code == 200:
+        generated_text = generate_response.json().get("choices")[0].get("message").get("content")
+        print("Сгенерированный текст:")
+        print(generated_text)
+    else:
+        print(f"Ошибка при генерации текста: {generate_response.status_code}")
+        print(generate_response.text)
+else:
+    print(f"Ошибка при получении токена: {oauth_response.status_code}")
+    print(oauth_response.text)
