@@ -1,9 +1,11 @@
+
+from database import get_db
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models.models_test import Template, Report
-from services.report_service import generate_report_content
+#from services.report_service import generate_report_content
 import json
 
 router = APIRouter()
@@ -35,15 +37,15 @@ async def create_template(name: str, content: str, db: AsyncSession = Depends(ge
 @router.post("/generate-report/")
 async def generate_report(template_id: int, data: dict, db: AsyncSession = Depends(get_db)):
     template = await db.get(Template, template_id)  # Асинхронный запрос
-    if not template:
-        raise HTTPException(status_code=404, detail="Шаблон не найден")
+    # if not template:
+    #     raise HTTPException(status_code=404, detail="Шаблон не найден")
     
-    generated_content = generate_report_content(template.content, data)
-    report = Report(template_id=template_id, data=json.dumps(data), generated_content=generated_content)
-    db.add(report)
-    await db.commit()
-    await db.refresh(report)
-    return {"id": report.id, "generated_content": report.generated_content}
+    # generated_content = generate_report_content(template.content, data)
+    # report = Report(template_id=template_id, data=json.dumps(data), generated_content=generated_content)
+    # db.add(report)
+    # await db.commit()
+    # await db.refresh(report)
+    # return {"id": report.id, "generated_content": report.generated_content}
 
 # Получение списка отчетов
 @router.get("/reports/")

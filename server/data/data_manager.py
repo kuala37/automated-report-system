@@ -1,7 +1,11 @@
 import json
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+
 from dotenv import load_dotenv
-from access_token import get_access_token  
+from gigachat.access_token import get_access_token  
 
 
 # Загрузка переменных из .env файла
@@ -147,6 +151,8 @@ if __name__ == "__main__":
             "Рекомендации": "Увеличить запасы"
         }
         added_data = add_data(new_data, access_token)
+
+
         print("Добавленные данные:")
         print(json.dumps(added_data, ensure_ascii=False, indent=4))
 

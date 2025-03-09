@@ -3,6 +3,8 @@ from fastapi import FastAPI
 from database import init_db, SessionLocal
 from models.models_test import User
 from routes.report import router as router_report
+from routes.user import router as user_router
+#import data.load_data
 
 
 async def lifespan(app: FastAPI):
@@ -24,6 +26,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.include_router(user_router, prefix="/api", tags=["users"])
 app.include_router(router_report, prefix="/api", tags=["reports"])
 
 @app.get("/")

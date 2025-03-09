@@ -1,8 +1,13 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
+from passlib.context import CryptContext
+
 
 Base = declarative_base()
+
+# Контекст для хеширования паролей
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class User(Base):
     __tablename__ = 'users'
@@ -14,6 +19,13 @@ class User(Base):
     reports = relationship("Report", back_populates="user")
     files = relationship("File", back_populates="user")
 
+    def set_password(self, password):
+        """Хеширует пароль и сохраняет его."""
+        self.password = pwd_context.hash(password)
+
+    def verify_password(self, password):
+        """Проверяет, совпадает ли пароль с хешем."""
+        return pwd_context.verify(password, self.password)
 
 class Template(Base):
     __tablename__ = 'templates'
