@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models.models_test import Template, Report
-#from services.report_service import generate_report_content
 import json
 
 router = APIRouter()
@@ -15,7 +14,7 @@ router = APIRouter()
 async def upload_data(file: UploadFile = File(...)):
     content = await file.read()
     try:
-        data = json.loads(content)  # Предполагаем, что данные в JSON
+        data = json.loads(content)  
         return {"message": "Данные успешно загружены", "data": data}
     except Exception as e:
         raise HTTPException(status_code=400, detail="Ошибка при обработке файла")

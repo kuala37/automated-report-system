@@ -4,6 +4,10 @@ from database import init_db, SessionLocal
 from models.models_test import User
 from routes.report import router as router_report
 from routes.user import router as user_router
+from routes.gigachat import router as gigachat_router  
+from routes.template import router as template_router  
+from routes.document import router as document_router
+
 #import data.load_data
 
 
@@ -28,6 +32,10 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(user_router, prefix="/api", tags=["users"])
 app.include_router(router_report, prefix="/api", tags=["reports"])
+app.include_router(gigachat_router, prefix="/api", tags=["gigachat"])
+app.include_router(template_router, prefix="/api", tags=["templates"])  
+app.include_router(document_router, prefix="/api", tags=["documents"])  
+
 
 @app.get("/")
 async def root():

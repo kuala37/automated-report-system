@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from database import SessionLocal
-from models.models_test import User
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional
-from gigachat.access_token import get_access_token
-from gigachat.generate_text import generate_text, generate_text_with_params, generate_long_text
+from generation.generate_text_langchain import (
+    generate_text,
+    generate_text_with_params,
+    generate_long_text,
+)
 
 router = APIRouter(prefix="/gigachat", tags=["gigachat"])
 
-# Модели Pydantic для запросов и ответов
+# Модели Pydantic для запросов
 class GenerateTextRequest(BaseModel):
     prompt: str
 
@@ -28,22 +28,13 @@ class GenerateLongTextRequest(BaseModel):
     n: Optional[int] = 1
     chunk_size: Optional[int] = 1000
 
-# Зависимость для получения сессии базы данных
-async def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        await db.close()
-
 @router.post("/generate-text")
 async def generate_text_endpoint(request: GenerateTextRequest):
     """
-    Генерирует текст по промпту с использованием GigaChat API.
+    Генерирует текст по промпту с использованием GigaChat API через LangChain.
     """
     try:
-        access_token = get_access_token()
-        generated_text = generate_text(request.prompt, access_token)
+        generated_text = generate_text(request.prompt)
         return {"generated_text": generated_text}
     except Exception as e:
         raise HTTPException(
@@ -54,17 +45,15 @@ async def generate_text_endpoint(request: GenerateTextRequest):
 @router.post("/generate-text-with-params")
 async def generate_text_with_params_endpoint(request: GenerateTextWithParamsRequest):
     """
-    Генерирует текст по промпту с настраиваемыми параметрами.
+    Генерирует текст по промпту с настраиваемыми параметрами через LangChain.
     """
     try:
-        access_token = get_access_token()
         generated_text = generate_text_with_params(
             request.prompt,
-            access_token,
             temperature=request.temperature,
             max_tokens=request.max_tokens,
             top_p=request.top_p,
-            n=request.n
+            n=request.n,
         )
         return {"generated_text": generated_text}
     except Exception as e:
@@ -76,18 +65,12 @@ async def generate_text_with_params_endpoint(request: GenerateTextWithParamsRequ
 @router.post("/generate-long-text")
 async def generate_long_text_endpoint(request: GenerateLongTextRequest):
     """
-    Генерирует длинный текст, разбивая промпт на части.
+    Генерирует длинный текст, разбивая промпт на части через LangChain.
     """
     try:
-        access_token = get_access_token()
         generated_text = generate_long_text(
             request.prompt,
-            access_token,
-            temperature=request.temperature,
-            max_tokens=request.max_tokens,
-            top_p=request.top_p,
-            n=request.n,
-            chunk_size=request.chunk_size
+            chunk_size=request.chunk_size,
         )
         return {"generated_text": generated_text}
     except Exception as e:
