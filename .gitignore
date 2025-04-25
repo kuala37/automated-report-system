@@ -1,5 +1,10 @@
 **/__pycache__
 .env
-.docx
-.html
-.pdf
+*.docx
+*.doc
+*.html
+*.pdf
+*.json
+*.csv
+*.xlsx
+**/__pycache__/  
