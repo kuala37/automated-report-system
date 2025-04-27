@@ -12,8 +12,14 @@ import {
 } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { status, user } = useAuth();
+  const { status, user, logout } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (status === 'loading') {
+      useAuth.getState().checkAuth();
+    }
+  }, [status]);
 
   if (status === 'loading') {
     return (
@@ -26,6 +32,12 @@ const MainLayout: React.FC = () => {
   if (status === 'unauthenticated') {
     return <Navigate to="/login" replace />;
   }
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
 
   return (
     <div className="flex h-screen bg-background">

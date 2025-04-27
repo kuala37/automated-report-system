@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { auth } from '../api/ApiClient';
+import { useAuth } from '../utils/auth';
 import { useToast } from '../utils/toast';
 import { Button, Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription, Input } from '../components/ui';
 import { Loader2 } from 'lucide-react';
@@ -19,26 +19,25 @@ const LoginPage = () => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
 
   const loginMutation = useMutation({
-    mutationFn: (creds: LoginCredentials) => 
-        auth.login({ username: creds.username, password: creds.password }),
-    onSuccess: (data) => {
-        toast({
-            title: "Login successful",
-            description: "Welcome back!"
-        });
-        navigate('/');
+    mutationFn: (creds: LoginCredentials) => login(creds),
+    onSuccess: () => {
+      toast({
+        title: "Login successful",
+        description: "Welcome back!"
+      });
+      navigate('/');
     },
     onError: (error: any) => {
-        const message = error.message || "Invalid credentials";
-        toast({
-            title: "Login failed",
-            description: message,
-            variant: "destructive"
-        });
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid credentials",
+        variant: "destructive"
+      });
     }
-});
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

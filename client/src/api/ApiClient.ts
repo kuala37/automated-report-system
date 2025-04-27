@@ -58,6 +58,32 @@ class ApiError extends Error {
   }
 }
 
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const token = localStorage.getItem('token');
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': token }),
+    ...options.headers,
+  });
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      ...options,
+      headers,
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      throw new ApiError(401, "Unauthorized");
+    }
+
+    return handleResponse(response);
+  } catch (error) {
+    console.error('Request error:', error);
+    throw error;
+  }
+}
+
 // Base API functions
 async function handleResponse(response: Response) {
   if (!response.ok) {
@@ -68,51 +94,62 @@ async function handleResponse(response: Response) {
 }
 
 async function get(path: string) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    credentials: 'include',
-  });
-  return handleResponse(response);
+  return fetchWithAuth(path);
 }
 
 async function post(path: string, data?: any) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  return fetchWithAuth(path, {
     method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: data ? JSON.stringify(data) : undefined,
   });
-  return handleResponse(response);
 }
 
 async function put(path: string, data: any) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  return fetchWithAuth(path, {
     method: 'PUT',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
     body: JSON.stringify(data),
   });
-  return handleResponse(response);
 }
 
 async function del(path: string) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  return fetchWithAuth(path, {
     method: 'DELETE',
-    credentials: 'include',
   });
-  return handleResponse(response);
 }
 
 // Auth endpoints
 export const auth = {
-  login: (credentials: { username: string; password: string }) => 
-    post('/users/login', credentials),
+  login: async (credentials: { username: string; password: string }) => {
+    try {
+      const validatedCredentials = loginSchema.parse(credentials);
+      const response = await post('/users/login', validatedCredentials);
+      
+      if (response && response.access_token) {
+        const token = `${response.token_type} ${response.access_token}`;
+        localStorage.setItem('token', token);
+      }
+      return response;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  },
+
   register: (data: { username: string; email: string; password: string }) => 
     post('/users/register', data),
-  getCurrentUser: () => get('/users/me'),
+
+  getCurrentUser: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new ApiError(401, "No authentication token found");
+    }
+    return get('/users/me');
+  },
+
+  logout: () => {
+    localStorage.removeItem('token');
+    return Promise.resolve();
+  }
 };
 
 // Templates endpoints

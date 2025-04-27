@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")  
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
@@ -111,19 +111,43 @@ async def login_user(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
     """
     Авторизует пользователя.
     """
-    result = await db.execute(select(User).where(User.username == user_data.username))
-    user = result.scalar()
+    try:
+        result = await db.execute(select(User).where(User.username == user_data.username))
+        user = result.scalar()
 
-    if not user or not user.verify_password(user_data.password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверное имя пользователя или пароль."
-        )
+        if not user or not user.verify_password(user_data.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Неверное имя пользователя или пароль."
+            )
 
-    token_data = {"sub": user.id}
-    token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+        token_data = {"sub": str(user.id)}  
+        token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
-    return {"access_token": token, "token_type": "bearer"}
+        return {
+            "access_token": token,
+            "token_type": "Bearer",
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email
+            }
+        }
+    except Exception as e:
+        print(f"Login error: {str(e)}")  
+        raise
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(current_user: User = Depends(get_current_user)):
+    """
+    Возвращает данные текущего пользователя.
+    """
+    return UserResponse(
+        id=current_user.id,
+        username=current_user.username,
+        email=current_user.email
+    )
+
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
@@ -141,16 +165,7 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
 
     return UserResponse(id=user.id, username=user.username, email=user.email)
 
-@router.get("/me", response_model=UserResponse)
-async def get_me(current_user: User = Depends(get_current_user)):
-    """
-    Возвращает данные текущего пользователя.
-    """
-    return UserResponse(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email
-    )
+
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(

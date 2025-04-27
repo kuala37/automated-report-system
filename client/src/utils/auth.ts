@@ -1,29 +1,70 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { create } from 'zustand';
+import { auth } from '../api/ApiClient';
 
-export function useAuth() {
-  const [status, setStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
-  const [user, setUser] = useState(null);
-  const navigate = useNavigate();
+interface AuthState {
+  status: 'loading' | 'authenticated' | 'unauthenticated';
+  user: any | null;
+  token: string | null;
+  setToken: (token: string | null) => void;
+  setUser: (user: any) => void;
+  login: (credentials: { username: string; password: string }) => Promise<void>;
+  logout: () => void;
+  checkAuth: () => Promise<void>;
+}
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+export const useAuth = create<AuthState>((set) => ({
+  status: 'loading',
+  user: null,
+  token: localStorage.getItem('token'),
+  
+  setToken: (token) => {
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+    set({ token });
+  },
 
-  const checkAuth = async () => {
+  setUser: (user) => {
+    set({ user, status: user ? 'authenticated' : 'unauthenticated' });
+  },
+
+  login: async (credentials) => {
     try {
-      const response = await fetch('/api/auth/check');
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        setStatus('authenticated');
-      } else {
-        setStatus('unauthenticated');
+      const response = await auth.login(credentials);
+      if (response.access_token) {
+        set({ 
+          token: response.access_token,
+          user: response.user,
+          status: 'authenticated' 
+        });
       }
     } catch (error) {
-      setStatus('unauthenticated');
+      set({ 
+        user: null, 
+        token: null, 
+        status: 'unauthenticated' 
+      });
+      throw error;
     }
-  };
+  },
 
-  return { status, user };
-}
+  logout: () => {
+    set({ user: null, token: null, status: 'unauthenticated' });
+    localStorage.removeItem('token');
+  },
+
+  checkAuth: async () => {
+    try {
+      if (!localStorage.getItem('token')) {
+        throw new Error('No token');
+      }
+      const user = await auth.getCurrentUser();
+      set({ user, status: 'authenticated' });
+    } catch {
+      set({ user: null, status: 'unauthenticated', token: null });
+      localStorage.removeItem('token');
+    }
+  },
+}));
