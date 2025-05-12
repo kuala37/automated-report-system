@@ -39,7 +39,7 @@ const DashboardPage = () => {
             <div className="text-2xl font-bold">{userReports.length}</div>
             <p className="text-xs text-muted-foreground">
               {userReports.length > 0 
-                ? `Last created ${new Date(userReports[0].createdAt).toLocaleDateString()}`
+                ? `Last created ${new Date(userReports[0].created_at).toLocaleDateString()}`
                 : "No reports created yet"}
             </p>
           </CardContent>
@@ -67,14 +67,14 @@ const DashboardPage = () => {
                       <div>
                         <p className="font-medium">{report.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(report.createdAt).toLocaleDateString()}
+                          {new Date(report.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => window.open(report.filePath)}
+                      onClick={() => navigate(`/reports/${report.id}`)}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
