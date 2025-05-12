@@ -9,6 +9,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Badge,
 } from '../components/ui';
 import {
   Plus,
@@ -70,6 +71,18 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({
   );
 };
 
+const getStatusBadgeVariant = (status: string) => {
+  switch (status) {
+    case 'completed':
+      return 'success';
+    case 'error':
+      return 'destructive';
+    case 'generating':
+      return 'warning';
+    default:
+      return 'secondary';
+  }
+};
 const ReportsPage = () => {
   const [reportToDelete, setReportToDelete] = useState<number | null>(null);
   const navigate = useNavigate();
@@ -122,21 +135,22 @@ const ReportsPage = () => {
           <CardContent>
             <div className="relative overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="text-xs uppercase border-b">
-                  <tr>
-                    <th scope="col" className="px-6 py-3">Title</th>
-                    <th scope="col" className="px-6 py-3">Template</th>
-                    <th scope="col" className="px-6 py-3">Format</th>
-                    <th scope="col" className="px-6 py-3">Created</th>
-                    <th scope="col" className="px-6 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <thead className="text-xs uppercase border-b">
+                <tr>
+                  <th scope="col" className="px-6 py-3">Title</th>
+                  <th scope="col" className="px-6 py-3">Template</th>
+                  <th scope="col" className="px-6 py-3">Format</th>
+                  <th scope="col" className="px-6 py-3">Status</th> 
+                  <th scope="col" className="px-6 py-3">Created</th>
+                  <th scope="col" className="px-6 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                   {userReports.map((report: Report) => (
                     <tr key={report.id} className="border-b">
                       <td className="px-6 py-4 font-medium">{report.title}</td>
                       <td className="px-6 py-4">
-                        {report.templateId ? `Template #${report.templateId}` : 'Custom'}
+                        {report.template_id ? `Template #${report.template_id}` : 'Custom'}
                       </td>
                       <td className="px-6 py-4">
                         <span className="px-2 py-1 text-xs rounded-full border">
@@ -144,14 +158,23 @@ const ReportsPage = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        {new Date(report.createdAt).toLocaleDateString()}
+                        <Badge variant={getStatusBadgeVariant(report.status)}>
+                          {report.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        {new Date(report.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-end space-x-2">
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => window.open(report.filePath)}
+                            onClick={() => {
+                              reports.download(report.id, report.file_path.split('/').pop() || 'report')
+                            }
+                          }
+                            disabled={report.status !== 'completed'}
                           >
                             <Download className="h-4 w-4" />
                           </Button>

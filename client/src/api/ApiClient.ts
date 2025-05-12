@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FormattingPreset } from '../types/formatting';
 const API_BASE_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000') + '/api';
 
 export interface User {
@@ -22,10 +23,16 @@ export interface Template {
 export interface Report {
   id: number;
   title: string;
-  templateId?: number;
+  template_id?: number;
   format: 'pdf' | 'doc' | 'docx';
-  createdAt: string;
-  filePath: string;
+  status: 'pending' | 'generating' | 'completed' | 'error';
+  file_path: string;
+  created_at: string;
+  sections?: Array<{
+    title: string;
+    prompt: string;
+    heading_level: number;
+  }>;
 }
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -165,28 +172,48 @@ export const templates = {
 
 // Reports endpoints
 export const reports = {
-  generate: (templateId: number, data: any) =>
-    post('/generate-report', { template_id: templateId, data }),
-  getAll: () => get('/reports'),
-  upload: (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return fetch(`${API_BASE_URL}/upload-data`, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    }).then(handleResponse);
+  generate: async (data: {
+    title: string;
+    template_id?: number | null;
+    format: string;
+    sections: Array<{
+      title: string;
+      prompt: string;
+      heading_level: number;
+    }>;
+    formatting_preset_id?: number | null; 
+
+  }) => {
+    return post('/generate-report', data);
   },
-  delete: async (reportId: number) => {
-    // Implementation for deleting a report
-    const response = await fetch(`/api/reports/${reportId}`, {
-      method: 'DELETE',
+  
+  getById: (reportId: number) => get(`/reports/${reportId}`),
+  getAll: () => get('/reports'),
+  
+  download: async (reportId: number, filename: string) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/reports/download/${filename}`, {
+      headers: {
+        ...(token && { 'Authorization': token }),
+      },
     });
     if (!response.ok) {
-      throw new Error('Failed to delete the report');
+      throw new Error('Failed to download file');
     }
-  }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  },
+  
+  delete: (reportId: number) => del(`/reports/${reportId}`),
 };
+
 
 // GigaChat endpoints
 export const gigachat = {
@@ -209,4 +236,21 @@ export const gigachat = {
       chunk_size?: number;
     }
   ) => post('/gigachat/generate-long-text', { prompt, ...params }),
+};
+
+
+export const formattingApi = {
+  getAllPresets: () => get('/formatting/presets'),
+  
+  getPresetById: (id: number) => get(`/formatting/presets/${id}`),
+  
+  createPreset: (preset: FormattingPreset) => post('/formatting/presets', preset),
+  
+  updatePreset: (id: number, preset: FormattingPreset) => put(`/formatting/presets/${id}`, preset),
+  
+  deletePreset: (id: number) => del(`/formatting/presets/${id}`),
+  
+  getDefaultPresets: () => get('/formatting/presets/defaults'),
+  
+  setDefaultPreset: (id: number) => post(`/formatting/presets/${id}/default`)
 };
