@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import text
 from sqlalchemy.future import select
 from database import SessionLocal
-from models.models_test import User
+from models.models import User
 from pydantic import BaseModel
 from typing import Optional
 from jose import JWTError, jwt
@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")  
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/token")  
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
@@ -61,8 +61,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
                 detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        result = await db.execute(select(User).where(User.id == user_id))
-        user = result.scalar()
+        
+        # result = await db.execute(select(User).where(User.id == user_id))
+        # user = result.scalar()
+        
+        stmt = select(User).where(User.id == int(user_id))
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -75,6 +81,40 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception as e:
+        print(f"Error in get_current_user: {str(e)}")  # Add logging
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error",
+        )
+
+@router.post("/token", include_in_schema=False)
+async def get_token(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    """
+    Get access token (for Swagger UI authentication)
+    """
+    try:
+        result = await db.execute(select(User).where(User.username == form_data.username))
+        user = result.scalar()
+
+        if not user or not user.verify_password(form_data.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password"
+            )
+
+        token_data = {"sub": str(user.id)}
+        token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+
+        return {
+            "access_token": token,
+            "token_type": "bearer"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed"
         )
 
 @router.post("/register", response_model=UserResponse)
@@ -142,11 +182,25 @@ async def get_me(current_user: User = Depends(get_current_user)):
     """
     Возвращает данные текущего пользователя.
     """
-    return UserResponse(
-        id=current_user.id,
-        username=current_user.username,
-        email=current_user.email
-    )
+    try:
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Пользователь не аутентифицирован",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        return UserResponse(
+            id=current_user.id,
+            username=current_user.username,
+            email=current_user.email
+        )
+    except Exception as e:
+        print(f"Ошибка в get_me: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Внутренняя ошибка сервера при получении данных пользователя: {str(e)}"
+        )
 
 
 @router.get("/{user_id}", response_model=UserResponse)

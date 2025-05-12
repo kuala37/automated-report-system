@@ -1,8 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from models.models_test import Base
-
-
+from models.models import Base
 
 # Docker URL
 DATABASE_URL="postgresql+asyncpg://admin:admin@automated-report-system-db-1:5432/report_system" # docker 
@@ -23,9 +21,9 @@ async def init_db():
         # Создаем таблицы
         await conn.run_sync(Base.metadata.create_all)
 
-def get_db():
+async def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()  # Закрываем сессию с await

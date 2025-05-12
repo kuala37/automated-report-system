@@ -26,7 +26,7 @@ class GenerateDocumentRequest(BaseModel):
 
 @router.post("/generate")
 async def generate_document(request: GenerateDocumentRequest):
-    """Generate a Word document with AI-generated content following GOST standards if specified"""
+    """Создать документ Word с контентом, сгенерированным ИИ, следуя стандартам ГОСТ, если указано"""
     try:
         output_path = document_service.generate_report(
             request.title,
@@ -44,7 +44,7 @@ async def generate_document(request: GenerateDocumentRequest):
 
 @router.get("/list")
 async def list_documents():
-    """Get list of generated documents"""
+    """Получить список сгенерированных документов"""
     try:
         documents = document_service.get_report_list()
         return {"documents": documents}

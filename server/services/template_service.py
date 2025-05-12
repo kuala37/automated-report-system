@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from models.models_test import Template
+from models.models import Template
 from fastapi import HTTPException, status
 
 async def create_template(db: AsyncSession, name: str, content: str):
