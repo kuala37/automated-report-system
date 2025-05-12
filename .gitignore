@@ -1,0 +1,11 @@
+**/__pycache__
+.env
+*.docx
+*.doc
+*.html
+*.pdf
+*.json
+*.csv
+*.xlsx
+**/__pycache__/  
+assets/
