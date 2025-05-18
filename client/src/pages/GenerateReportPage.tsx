@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui';
-import { Plus, AlertCircle, Loader2, Settings } from 'lucide-react';
+import { Plus, AlertCircle, Loader2, Settings, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface Section {
   title: string;
@@ -35,13 +35,52 @@ interface ReportData {
   formatting_preset_id?: number | null;
 }
 
+const TEMPLATES_PER_PAGE = 8;
+
+const TemplatePagination = ({ 
+  currentPage, 
+  totalPages, 
+  onPageChange 
+}: { 
+  currentPage: number; 
+  totalPages: number; 
+  onPageChange: (page: number) => void;
+}) => {
+  return (
+    <div className="flex items-center justify-center space-x-2 mt-4">
+      <Button 
+        variant="outline" 
+        size="icon" 
+        onClick={() => onPageChange(currentPage - 1)} 
+        disabled={currentPage <= 1}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      
+      <div className="text-sm">
+        Страница {currentPage} из {Math.max(1, totalPages)}
+      </div>
+      
+      <Button 
+        variant="outline" 
+        size="icon" 
+        onClick={() => onPageChange(currentPage + 1)} 
+        disabled={currentPage >= totalPages}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
 const GenerateReportPage = () => {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [templatePage, setTemplatePage] = useState(1);
   const [reportData, setReportData] = useState<ReportData>({
     title: '',
     template_id: undefined,
-    format: 'pdf',
+    format: 'docx',
     sections: [{ title: '', prompt: '', heading_level: 1 }],
     formatting_preset_id: null
   });
@@ -105,6 +144,10 @@ const GenerateReportPage = () => {
     queryKey: ['templates'],
     queryFn: templates.getAll,
   });
+
+  const totalTemplatePages = Math.ceil(userTemplates.length / TEMPLATES_PER_PAGE);
+  const startTemplateIndex = (templatePage - 1) * TEMPLATES_PER_PAGE;
+  const paginatedTemplates = userTemplates.slice(startTemplateIndex, startTemplateIndex + TEMPLATES_PER_PAGE);
 
   const { data: selectedTemplate } = useQuery<Template | null>({
     queryKey: ['template', reportData.template_id],
@@ -182,6 +225,12 @@ const GenerateReportPage = () => {
       template_id: templateId,
       sections: [], 
     });
+  };
+  
+  const handleTemplatePageChange = (page: number) => {
+    if (page >= 1 && page <= totalTemplatePages) {
+      setTemplatePage(page);
+    }
   };
 
   const handleAddSection = () => {
@@ -294,7 +343,7 @@ const GenerateReportPage = () => {
                 </CardHeader>
               </Card>
 
-              {userTemplates.map((template) => (
+              {paginatedTemplates.map((template) => (
                 <Card 
                   key={template.id}
                   className={`cursor-pointer transition-all ${
@@ -309,6 +358,15 @@ const GenerateReportPage = () => {
                 </Card>
               ))}
             </div>
+            
+            {/* Добавляем пагинацию, если шаблонов больше, чем помещается на страницу */}
+            {totalTemplatePages > 1 && (
+              <TemplatePagination 
+                currentPage={templatePage} 
+                totalPages={totalTemplatePages} 
+                onPageChange={handleTemplatePageChange} 
+              />
+            )}
           </CardContent>
           <CardFooter>
             <div className="flex justify-between w-full">
