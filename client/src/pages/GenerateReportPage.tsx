@@ -37,6 +37,7 @@ interface ReportData {
 
 const GenerateReportPage = () => {
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [reportData, setReportData] = useState<ReportData>({
     title: '',
     template_id: undefined,
@@ -123,8 +124,12 @@ const GenerateReportPage = () => {
         title: 'Report generation started',
         description: 'Your report is being generated...',
       });
+
+    startPolling(response.id);
+
     },
     onError: (error: Error) => {
+      setIsSubmitting(false);
       toast({
         title: 'Error',
         description: error.message,
@@ -139,12 +144,15 @@ const GenerateReportPage = () => {
         const report = await reports.getById(reportId);
         
         if (report.status === 'completed') {
+          setIsSubmitting(false);
+
           toast({
             title: 'Success',
             description: 'Report generated successfully',
           });
           navigate('/reports');
         } else if (report.status === 'error') {
+          setIsSubmitting(false);
           toast({
             title: 'Error',
             description: 'Failed to generate report',
@@ -155,6 +163,8 @@ const GenerateReportPage = () => {
         }
       } catch (error) {
         console.error('Polling error:', error);
+        setIsSubmitting(false);
+
         toast({
           title: 'Error',
           description: 'Failed to check report status',
@@ -194,7 +204,8 @@ const GenerateReportPage = () => {
   };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setIsSubmitting(true);
+
     const submitData: ReportData = {
       title: reportData.title,
       format: reportData.format,
@@ -226,6 +237,17 @@ const GenerateReportPage = () => {
 
   return (
     <div className="space-y-6">
+
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-background p-8 rounded-lg shadow-lg flex flex-col items-center">
+            <div className="animate-spin h-16 w-16 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+            <h3 className="text-xl font-medium">Идет генерация отчета...</h3>
+            <p className="text-muted-foreground mt-2">Это может занять некоторое время</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Generate Report</h1>
       </div>      <div className="grid grid-cols-3 gap-4 mb-8">
@@ -466,18 +488,18 @@ const GenerateReportPage = () => {
           </CardContent>
           <CardFooter>
             <div className="flex justify-between w-full">
-              <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+              <Button variant="outline" onClick={() => setStep(2)}>Назад</Button>
               <Button 
                 onClick={handleSubmit}
-                disabled={generateMutation.isPending}
+                disabled={generateMutation.isPending || isSubmitting}
               >
-                {generateMutation.isPending ? (
+                {generateMutation.isPending || isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
+                    Генерация...
                   </>
                 ) : (
-                  'Generate Report'
+                  'Создать отчет'
                 )}
               </Button>
             </div>
