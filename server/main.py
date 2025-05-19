@@ -10,6 +10,8 @@ from routes.template import router as template_router
 from routes.document import router as document_router
 from routes.file import router as file_router
 from routes.formatting import router as formatting_router  
+from routes.chat import router as chat_router  
+
 
 #import data.load_data
 
@@ -52,6 +54,7 @@ app.include_router(template_router, prefix="/api", tags=["templates"])
 app.include_router(document_router, prefix="/api", tags=["documents"])  
 app.include_router(file_router, prefix="/api", tags=["files"])  
 app.include_router(formatting_router, prefix="/api", tags=["formatting"])
+app.include_router(chat_router, prefix="/api", tags=["chats"]) 
 
 @app.get("/")
 async def root():

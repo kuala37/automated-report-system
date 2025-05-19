@@ -18,6 +18,7 @@ class User(Base):
     reports = relationship("Report", back_populates="user")
     files = relationship("File", back_populates="user")
     formatting_presets = relationship("FormattingPreset", back_populates="owner")
+    chats = relationship("Chat", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password):
         """Хеширует пароль и сохраняет его."""
@@ -78,3 +79,27 @@ class File(Base):
     uploaded_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="files")
+
+class Chat(Base):
+    __tablename__ = "chats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, default="Новый чат")
+    user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="chats")
+    messages = relationship("ChatMessage", back_populates="chat", cascade="all, delete-orphan")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(Integer, ForeignKey("chats.id"))
+    content = Column(Text)
+    role = Column(String)  
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    chat = relationship("Chat", back_populates="messages")

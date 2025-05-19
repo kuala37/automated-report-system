@@ -254,3 +254,23 @@ export const formattingApi = {
   
   setDefaultPreset: (id: number) => post(`/formatting/presets/${id}/default`)
 };
+
+export const chat = {
+  create: (data: { title?: string }) => 
+    post('/chats', data),
+  
+  getAll: () => 
+    get('/chats'),
+  
+  getById: (id: number) => 
+    get(`/chats/${id}`),
+  
+  addMessage: (chatId: number, data: { content: string }) => 
+    post(`/chats/${chatId}/messages`, data),
+  
+  updateTitle: (chatId: number, data: { title: string }) => 
+    put(`/chats/${chatId}`, data),
+  
+  delete: (chatId: number) => 
+    del(`/chats/${chatId}`)
+};

@@ -15,7 +15,6 @@ class ItemResponse(ItemBase):
     class Config:
         orm_mode = True
         
-# Formatting schemas
 class FormattingPresetBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -39,3 +38,43 @@ class FormattingPresetResponse(FormattingPresetBase):
 
     class Config:
         orm_mode = True
+
+
+class ChatMessageCreate(BaseModel):
+    content: str
+    role: str = "user"
+
+
+class ChatMessageResponse(BaseModel):
+    id: int
+    content: str
+    role: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChatCreate(BaseModel):
+    title: Optional[str] = "Новый чат"
+
+
+class ChatUpdate(BaseModel):
+    title: str
+
+
+class ChatResponse(BaseModel):
+    id: int
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChatDetailResponse(ChatResponse):
+    messages: List[ChatMessageResponse] = []
+
+    class Config:
+        from_attributes = True
