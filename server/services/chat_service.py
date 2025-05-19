@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
-from models.models import Chat, ChatMessage, User, Report
+from models.models import Chat, ChatDocument, Document, ChatMessage, User, Report
 from generation.generate_text_langchain import generate_text_with_params
 
 
@@ -209,3 +209,73 @@ class ChatService:
             await db.commit()
             return True
         return False
+    
+    async def generate_document_analysis_response(
+        self, db: AsyncSession, chat_id: int, user_id: int, document_id: int, question: str
+    ) -> ChatMessage:
+        """Генерирует ответ ИИ на основе анализа документа"""
+        # Проверяем существование чата
+        chat = await self.get_chat(db, chat_id, user_id)
+        if not chat:
+            return None
+        
+        # Проверяем доступ к документу
+        document_query = select(Document).where(Document.id == document_id, Document.user_id == user_id)
+        document_result = await db.execute(document_query)
+        document = document_result.scalar_one_or_none()
+        
+        if not document:
+            return await self.add_message(
+                db, 
+                chat_id, 
+                "У вас нет доступа к указанному документу или он не существует.", 
+                role="assistant"
+            )
+        
+        # Связываем документ с чатом, если еще не связан
+        chat_doc_query = select(ChatDocument).where(
+            ChatDocument.chat_id == chat_id,
+            ChatDocument.document_id == document_id
+        )
+        chat_doc_result = await db.execute(chat_doc_query)
+        chat_doc = chat_doc_result.scalar_one_or_none()
+        
+        if not chat_doc:
+            chat_doc = ChatDocument(chat_id=chat_id, document_id=document_id)
+            db.add(chat_doc)
+            await db.commit()
+        
+        # Используем сервис для анализа документа
+        from services.document_analysis_service import DocumentAnalysisService
+        doc_service = DocumentAnalysisService()
+        
+        try:
+            answer = await doc_service.analyze_document(document_id, question, db)
+        except Exception as e:
+            return await self.add_message(
+                db, 
+                chat_id, 
+                f"Произошла ошибка при анализе документа: {str(e)}", 
+                role="assistant"
+            )
+        
+        # Добавляем ответ в чат
+        return await self.add_message(db, chat_id, answer, role="assistant")
+
+    async def list_documents_for_chat(self, db: AsyncSession, chat_id: int, user_id: int) -> List[Document]:
+        """Возвращает список документов, прикрепленных к чату"""
+        # Проверяем доступ к чату
+        chat = await self.get_chat(db, chat_id, user_id)
+        if not chat:
+            return []
+        
+        # Получаем документы чата
+        from sqlalchemy import join
+        query = select(Document).select_from(
+            join(Document, ChatDocument, Document.id == ChatDocument.document_id)
+        ).where(ChatDocument.chat_id == chat_id)
+        
+        result = await db.execute(query)
+        documents = result.scalars().all()
+        
+        return documents

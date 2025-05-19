@@ -272,5 +272,36 @@ export const chat = {
     put(`/chats/${chatId}`, data),
   
   delete: (chatId: number) => 
-    del(`/chats/${chatId}`)
+    del(`/chats/${chatId}`),
+
+    analyzeDocument: (chatId: number, data: { document_id: number; question: string }) => 
+    post(`/chats/${chatId}/analyze-document`, data),
+  
+  getChatDocuments: (chatId: number) => 
+    get(`/chats/${chatId}/documents`)
+};
+
+export const documentAnalysis = {
+  uploadDocument: (formData: FormData) => {
+    // Важно: для FormData мы должны использовать специальную обработку запроса
+    const token = localStorage.getItem('token');
+    
+    return fetch(`${API_BASE_URL}/document-analysis/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: token ? { 'Authorization': token } : undefined
+    }).then(handleResponse);
+  },
+  
+  analyzeDocument: (documentId: number, question: string) => 
+    post('/document-analysis/analyze', { document_id: documentId, question }),
+  
+  getUserDocuments: () => 
+    get('/document-analysis/documents'),
+  
+  getChatDocuments: (chatId: number) => 
+    get(`/document-analysis/documents/chat/${chatId}`),
+  
+  summarizeDocument: (documentId: number) => 
+    post(`/document-analysis/summarize/${documentId}`)
 };

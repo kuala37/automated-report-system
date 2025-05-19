@@ -5,6 +5,7 @@ from database import get_db
 from models.models import User
 from routes.user import get_current_user
 from services.chat_service import ChatService
+from pydantic import BaseModel
 from schemas import (
     ChatCreate, 
     ChatUpdate, 
@@ -13,6 +14,11 @@ from schemas import (
     ChatMessageCreate,
     ChatMessageResponse
 )
+from services.document_analysis_service import DocumentAnalysisService
+
+class DocumentAnalysisRequest(BaseModel):
+    document_id: int
+    question: str
 
 router = APIRouter(prefix="/chats", tags=["chats"])
 chat_service = ChatService()
@@ -149,3 +155,43 @@ async def delete_chat(
     if not result:
         raise HTTPException(status_code=404, detail="Чат не найден")
     return {"status": "success", "message": "Чат удален"}
+
+
+@router.post("/{chat_id}/analyze-document", response_model=ChatMessageResponse)
+async def analyze_document_in_chat(
+    chat_id: int,
+    request: DocumentAnalysisRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Анализирует документ в контексте чата"""
+    # Проверяем существование чата
+    chat = await chat_service.get_chat(db, chat_id, current_user.id)
+    if not chat:
+        raise HTTPException(status_code=404, detail="Чат не найден")
+    
+    # Добавляем сообщение пользователя
+    user_message = await chat_service.add_message(
+        db, 
+        chat_id, 
+        f"[Анализ документа #{request.document_id}] {request.question}", 
+        "user"
+    )
+    
+    # Генерируем ответ на основе анализа документа
+    ai_message = await chat_service.generate_document_analysis_response(
+        db, chat_id, current_user.id, request.document_id, request.question
+    )
+    
+    return ai_message
+
+# Добавьте маршрут для получения списка документов в чате
+@router.get("/{chat_id}/documents", response_model=List)
+async def get_chat_documents(
+    chat_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Получает список документов, прикрепленных к чату"""
+    documents = await chat_service.list_documents_for_chat(db, chat_id, current_user.id)
+    return documents

@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { chat as chatApi } from '../../api/ApiClient';
-import { Button, Input, Card, CardContent } from '../ui';
+import { Button, Input, Card, CardContent, TabsList, Tabs, TabsTrigger, TabsContent } from '../ui';
 import { Send, Loader2 } from 'lucide-react';
 import { useToast } from '../../utils/toast';
+import DocumentAnalysis from './DocumentAnalysis'; 
 
 interface Message {
   id: number;
@@ -82,6 +83,35 @@ const ChatWindow: React.FC = () => {
     }
   };
 
+ const handleDocumentAnalysis = (question: string, answer: string) => {
+    // Добавляем результат анализа документа в чат
+    setChat(prev => {
+      if (!prev) return null;
+      
+      // Имитируем добавление сообщений в интерфейсе без повторного запроса
+      const newMessages = [
+        ...prev.messages,
+        { 
+          id: Date.now(), // Временный ID
+          content: `[Вопрос по документу] ${question}`,
+          role: 'user' as 'user', 
+          created_at: new Date().toISOString() 
+        },
+        { 
+          id: Date.now() + 1, // Временный ID
+          content: answer,
+          role: 'assistant' as 'assistant', 
+          created_at: new Date().toISOString() 
+        }
+      ];
+      
+      return {
+        ...prev,
+        messages: newMessages
+      };
+    });
+  };
+
   if (!chat) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -117,23 +147,39 @@ const ChatWindow: React.FC = () => {
       </div>
 
       <div className="p-4 border-t">
-        <div className="flex gap-2">
-          <Input
-            placeholder="Введите сообщение..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            disabled={loading}
-            className="flex-grow"
-          />
-          <Button onClick={handleSendMessage} disabled={loading || !message.trim()}>
-            {loading ? (
-              <Loader2 className="animate-spin h-4 w-4" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+    <Tabs defaultValue="chat" className="w-full">
+        <TabsList className="mb-4 w-full">
+        <TabsTrigger value="chat" className="flex-1">Чат</TabsTrigger>
+        <TabsTrigger value="documents" className="flex-1">Документы</TabsTrigger>
+        </TabsList>
+          
+          <TabsContent value="chat">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Введите сообщение..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                disabled={loading}
+                className="flex-grow"
+              />
+              <Button onClick={handleSendMessage} disabled={loading || !message.trim()}>
+                {loading ? (
+                  <Loader2 className="animate-spin h-4 w-4" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="documents">
+            <DocumentAnalysis 
+              chatId={parseInt(chatId as string)} 
+              onAnalysisComplete={handleDocumentAnalysis} 
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

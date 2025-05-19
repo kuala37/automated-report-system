@@ -19,6 +19,7 @@ class User(Base):
     files = relationship("File", back_populates="user")
     formatting_presets = relationship("FormattingPreset", back_populates="owner")
     chats = relationship("Chat", back_populates="user", cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
 
     def set_password(self, password):
         """Хеширует пароль и сохраняет его."""
@@ -91,6 +92,7 @@ class Chat(Base):
 
     user = relationship("User", back_populates="chats")
     messages = relationship("ChatMessage", back_populates="chat", cascade="all, delete-orphan")
+    documents = relationship("ChatDocument", back_populates="chat", cascade="all, delete-orphan")
 
 
 class ChatMessage(Base):
@@ -103,3 +105,29 @@ class ChatMessage(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     chat = relationship("Chat", back_populates="messages")
+
+
+class Document(Base):
+    __tablename__ = "documents"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    original_filename = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    file_type = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="documents")
+    chat_documents = relationship("ChatDocument", back_populates="document", cascade="all, delete-orphan")
+
+
+class ChatDocument(Base):
+    __tablename__ = "chat_documents"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(Integer, ForeignKey("chats.id"))
+    document_id = Column(Integer, ForeignKey("documents.id"))
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    chat = relationship("Chat", back_populates="documents")
+    document = relationship("Document", back_populates="chat_documents")
