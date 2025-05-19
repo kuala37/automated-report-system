@@ -31,7 +31,7 @@ def generate_text(prompt):
     response = giga.invoke(messages)
     return response.content
 
-def generate_text_with_params(prompt, temperature=0.75, max_tokens=25000, top_p=0.9, n=1):
+def generate_text_with_params(prompt, temperature=0.75, max_tokens=8000, top_p=0.9, n=1):
     """
     Генерирует текст по промпту с настраиваемыми параметрами.
 
