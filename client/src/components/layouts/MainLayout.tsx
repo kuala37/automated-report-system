@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   Menu,
+  Bot,
 } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
@@ -63,6 +64,12 @@ const MainLayout: React.FC = () => {
             <Button variant="ghost" className="w-full justify-start">
               <FileText className="mr-2 h-4 w-4" />
               Reports
+            </Button>
+          </Link>
+          <Link to="/chats">
+            <Button variant="ghost" className="w-full justify-start">
+              <Bot className="mr-2 h-4 w-4" />
+              Chat AI
             </Button>
           </Link>
           <Link to="/settings">

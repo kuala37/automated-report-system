@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { templates, Template } from '../api/ApiClient';
 import { useToast } from '../utils/toast';
 import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui';
-import { Plus, File, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, File, Edit, Trash2, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DeleteDialogProps {
   isOpen: boolean;
@@ -58,8 +58,47 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({
   );
 };
 
+const ITEMS_PER_PAGE = 12;
+
+const Pagination = ({ 
+  currentPage, 
+  totalPages, 
+  onPageChange 
+}: { 
+  currentPage: number; 
+  totalPages: number; 
+  onPageChange: (page: number) => void;
+}) => {
+  return (
+    <div className="flex items-center justify-center space-x-2 mt-6">
+      <Button 
+        variant="outline" 
+        size="icon" 
+        onClick={() => onPageChange(currentPage - 1)} 
+        disabled={currentPage <= 1}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      
+      <div className="text-sm">
+        Страница {currentPage} из {Math.max(1, totalPages)}
+      </div>
+      
+      <Button 
+        variant="outline" 
+        size="icon" 
+        onClick={() => onPageChange(currentPage + 1)} 
+        disabled={currentPage >= totalPages}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
 const TemplatesPage = () => {
   const [templateToDelete, setTemplateToDelete] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -88,7 +127,18 @@ const TemplatesPage = () => {
     },
   });
 
-  return (
+  const totalPages = Math.ceil(userTemplates.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedTemplates = userTemplates.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+  
+ return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Templates</h1>
@@ -103,42 +153,52 @@ const TemplatesPage = () => {
           <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
         </div>
       ) : userTemplates.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {userTemplates.map((template: Template) => (
-            <Card key={template.id}>
-              <CardHeader>
-                <CardTitle>{template.name}</CardTitle>
-                <CardDescription>{template.content}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Created on {new Date(template.createdAt).toLocaleDateString()}
-                </p>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => navigate(`/templates/${template.id}`)}>
-                  View
-                </Button>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => navigate(`/templates/${template.id}/edit`)}
-                  >
-                    <Edit className="h-4 w-4" />
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {paginatedTemplates.map((template: Template) => (
+              <Card key={template.id}>
+                <CardHeader>
+                  <CardTitle>{template.name}</CardTitle>
+                  <CardDescription>{template.content}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Created on {new Date(template.createdAt).toLocaleDateString()}
+                  </p>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => navigate(`/templates/${template.id}`)}>
+                    View
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setTemplateToDelete(template.id)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => navigate(`/templates/${template.id}/edit`)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setTemplateToDelete(template.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+          
+          {totalPages > 1 && (
+            <Pagination 
+              currentPage={currentPage} 
+              totalPages={totalPages} 
+              onPageChange={handlePageChange} 
+            />
+          )}
+        </>
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10">

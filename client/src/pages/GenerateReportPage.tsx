@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui';
-import { Plus, AlertCircle, Loader2, Settings } from 'lucide-react';
+import { Plus, AlertCircle, Loader2, Settings, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface Section {
   title: string;
@@ -35,12 +35,52 @@ interface ReportData {
   formatting_preset_id?: number | null;
 }
 
+const TEMPLATES_PER_PAGE = 8;
+
+const TemplatePagination = ({ 
+  currentPage, 
+  totalPages, 
+  onPageChange 
+}: { 
+  currentPage: number; 
+  totalPages: number; 
+  onPageChange: (page: number) => void;
+}) => {
+  return (
+    <div className="flex items-center justify-center space-x-2 mt-4">
+      <Button 
+        variant="outline" 
+        size="icon" 
+        onClick={() => onPageChange(currentPage - 1)} 
+        disabled={currentPage <= 1}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      
+      <div className="text-sm">
+        Страница {currentPage} из {Math.max(1, totalPages)}
+      </div>
+      
+      <Button 
+        variant="outline" 
+        size="icon" 
+        onClick={() => onPageChange(currentPage + 1)} 
+        disabled={currentPage >= totalPages}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+};
+
 const GenerateReportPage = () => {
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [templatePage, setTemplatePage] = useState(1);
   const [reportData, setReportData] = useState<ReportData>({
     title: '',
     template_id: undefined,
-    format: 'pdf',
+    format: 'docx',
     sections: [{ title: '', prompt: '', heading_level: 1 }],
     formatting_preset_id: null
   });
@@ -105,6 +145,10 @@ const GenerateReportPage = () => {
     queryFn: templates.getAll,
   });
 
+  const totalTemplatePages = Math.ceil(userTemplates.length / TEMPLATES_PER_PAGE);
+  const startTemplateIndex = (templatePage - 1) * TEMPLATES_PER_PAGE;
+  const paginatedTemplates = userTemplates.slice(startTemplateIndex, startTemplateIndex + TEMPLATES_PER_PAGE);
+
   const { data: selectedTemplate } = useQuery<Template | null>({
     queryKey: ['template', reportData.template_id],
     queryFn: async () => {
@@ -123,8 +167,12 @@ const GenerateReportPage = () => {
         title: 'Report generation started',
         description: 'Your report is being generated...',
       });
+
+    startPolling(response.id);
+
     },
     onError: (error: Error) => {
+      setIsSubmitting(false);
       toast({
         title: 'Error',
         description: error.message,
@@ -139,12 +187,15 @@ const GenerateReportPage = () => {
         const report = await reports.getById(reportId);
         
         if (report.status === 'completed') {
+          setIsSubmitting(false);
+
           toast({
             title: 'Success',
             description: 'Report generated successfully',
           });
           navigate('/reports');
         } else if (report.status === 'error') {
+          setIsSubmitting(false);
           toast({
             title: 'Error',
             description: 'Failed to generate report',
@@ -155,6 +206,8 @@ const GenerateReportPage = () => {
         }
       } catch (error) {
         console.error('Polling error:', error);
+        setIsSubmitting(false);
+
         toast({
           title: 'Error',
           description: 'Failed to check report status',
@@ -172,6 +225,12 @@ const GenerateReportPage = () => {
       template_id: templateId,
       sections: [], 
     });
+  };
+  
+  const handleTemplatePageChange = (page: number) => {
+    if (page >= 1 && page <= totalTemplatePages) {
+      setTemplatePage(page);
+    }
   };
 
   const handleAddSection = () => {
@@ -194,7 +253,8 @@ const GenerateReportPage = () => {
   };
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setIsSubmitting(true);
+
     const submitData: ReportData = {
       title: reportData.title,
       format: reportData.format,
@@ -226,6 +286,17 @@ const GenerateReportPage = () => {
 
   return (
     <div className="space-y-6">
+
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-background p-8 rounded-lg shadow-lg flex flex-col items-center">
+            <div className="animate-spin h-16 w-16 border-4 border-primary border-t-transparent rounded-full mb-4"></div>
+            <h3 className="text-xl font-medium">Идет генерация отчета...</h3>
+            <p className="text-muted-foreground mt-2">Это может занять некоторое время</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">Generate Report</h1>
       </div>      <div className="grid grid-cols-3 gap-4 mb-8">
@@ -272,7 +343,7 @@ const GenerateReportPage = () => {
                 </CardHeader>
               </Card>
 
-              {userTemplates.map((template) => (
+              {paginatedTemplates.map((template) => (
                 <Card 
                   key={template.id}
                   className={`cursor-pointer transition-all ${
@@ -287,6 +358,15 @@ const GenerateReportPage = () => {
                 </Card>
               ))}
             </div>
+            
+            {/* Добавляем пагинацию, если шаблонов больше, чем помещается на страницу */}
+            {totalTemplatePages > 1 && (
+              <TemplatePagination 
+                currentPage={templatePage} 
+                totalPages={totalTemplatePages} 
+                onPageChange={handleTemplatePageChange} 
+              />
+            )}
           </CardContent>
           <CardFooter>
             <div className="flex justify-between w-full">
@@ -466,18 +546,18 @@ const GenerateReportPage = () => {
           </CardContent>
           <CardFooter>
             <div className="flex justify-between w-full">
-              <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+              <Button variant="outline" onClick={() => setStep(2)}>Назад</Button>
               <Button 
                 onClick={handleSubmit}
-                disabled={generateMutation.isPending}
+                disabled={generateMutation.isPending || isSubmitting}
               >
-                {generateMutation.isPending ? (
+                {generateMutation.isPending || isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
+                    Генерация...
                   </>
                 ) : (
-                  'Generate Report'
+                  'Создать отчет'
                 )}
               </Button>
             </div>

@@ -15,6 +15,8 @@ import GenerateReportPage from './pages/GenerateReportPage';
 import DocumentStylePage from './pages/DocumentStylePage';
 import FormattingPresetsPage from './pages/FormattingPresetsPage';
 import SettingsPage from './pages/SettingsPage';
+import ChatsPage from './pages/ChatsPage';
+import ChatWindow from './components/chat/ChatWindow';
 import './theme.css';
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ function App() {
             <Route path="/document-style" element={<DocumentStylePage />} />
             <Route path="/formatting-presets" element={<FormattingPresetsPage />} />
             <Route path="/reports/:id" element={<ViewReportPage />} />
+            <Route path="/chats" element={<ChatsPage />} />
+            <Route path="/chats/:chatId" element={<ChatWindow />} />
             <Route path="/settings" element={<SettingsPage />} /> 
           </Route>
         </Routes>
