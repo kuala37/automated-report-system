@@ -68,6 +68,8 @@ async def get_chat(
     chat = await chat_service.get_chat(db, chat_id, current_user.id)
     if not chat:
         raise HTTPException(status_code=404, detail="Чат не найден")
+    if chat:
+        chat.messages.sort(key=lambda x: x.id)
     return chat
 
 

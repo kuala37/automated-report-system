@@ -43,18 +43,24 @@ class Report(Base):
     __tablename__ = 'reports'
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    title = Column(String, index=True)
     template_id = Column(Integer, ForeignKey("templates.id"))
+    chat_id = Column(Integer, ForeignKey("chats.id"), nullable=True)
+    title = Column(String, index=True)
     format = Column(String) 
     file_path = Column(String)
     status = Column(String, default="pending")
     created_at = Column(DateTime, default=datetime.utcnow)
     sections = Column(JSON, nullable=False)  
     formatting_preset_id = Column(Integer, ForeignKey("formatting_presets.id"), nullable=True)
+    html_content = Column(Text, nullable=True)  # Для хранения HTML-представления документа
+    document_version = Column(Integer, default=1)  # Версионность документа
+    version_history = Column(JSON, nullable=True, default=lambda: [])  # Массив версий
 
     user = relationship("User", back_populates="reports")
     template = relationship("Template", back_populates="reports")
     formatting_preset = relationship("FormattingPreset")
+    chat = relationship("Chat", foreign_keys=[chat_id])
+    edits = relationship("DocumentEdit", back_populates="report")
 
 
 class FormattingPreset(Base):
@@ -131,3 +137,19 @@ class ChatDocument(Base):
     
     chat = relationship("Chat", back_populates="documents")
     document = relationship("Document", back_populates="chat_documents")
+
+
+class DocumentEdit(Base):
+    __tablename__ = 'document_edits'
+    id = Column(Integer, primary_key=True, index=True)
+    report_id = Column(Integer, ForeignKey("reports.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    chat_message_id = Column(Integer, ForeignKey("chat_messages.id"), nullable=True)
+    edit_type = Column(String)  # replace, format, insert, delete
+    content_before = Column(Text, nullable=True)
+    content_after = Column(Text, nullable=True)
+    position = Column(JSON, nullable=True)  # Информация о расположении изменения
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    report = relationship("Report", back_populates="edits")
+    chat_message = relationship("ChatMessage")

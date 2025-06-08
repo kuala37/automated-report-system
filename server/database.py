@@ -5,6 +5,8 @@ from models.models import Base
 # Docker URL
 DATABASE_URL="postgresql+asyncpg://admin:admin@automated-report-system-db-1:5432/report_system" # docker 
 
+# Local URL
+# DATABASE_URL="postgresql+asyncpg://admin:admin@localhost:5432/report_system"
 
 engine = create_async_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(

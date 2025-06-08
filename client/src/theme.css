@@ -74,3 +74,103 @@
     @apply bg-background text-foreground;
   }
 }
+
+.document-viewer {
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 12pt !important;
+  line-height: 1.15 !important;
+  color: #000000 !important;
+  background: white !important;
+  height: 100%;
+  min-height: 100% !important;  
+  width: 100% !important;  
+  margin: 0 auto !important;
+  padding: 10pt 8pt !important; /* Default Word margins */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e0e0e0 !important;
+}
+.document-viewer .word-document-page {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  margin: 0 !important;
+  flex: 1 !important;
+  box-sizing: border-box !important;
+  background-color: white !important;
+}
+
+.document-viewer p,
+.document-viewer h1,
+.document-viewer h2,
+.document-viewer h3,
+.document-viewer h4,
+.document-viewer h5,
+.document-viewer h6 {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.15 !important;
+  word-wrap: break-word !important;
+}
+
+.document-viewer .empty-paragraph {
+  height: 1.15em !important;
+  min-height: 1.15em !important;
+}
+
+.document-viewer strong {
+  font-weight: bold !important;
+}
+
+.document-viewer em {
+  font-style: italic !important;
+}
+
+.document-viewer u {
+  text-decoration: underline !important;
+}
+
+/* Точное отображение таблиц как в Word */
+.document-viewer table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.document-viewer td,
+.document-viewer th {
+  border: 1px solid #000000 !important;
+  padding: 0.2em 0.3em !important;
+  text-align: left !important;
+  vertical-align: top !important;
+  font-size: inherit !important;
+}
+
+/* Hover эффекты для интерактивности */
+.document-viewer [data-paragraph-id]:hover {
+  background-color: rgba(0, 120, 212, 0.05) !important;
+  cursor: text !important;
+}
+
+/* Выделение текста */
+.document-viewer ::selection {
+  background-color: #0078d4 !important;
+  color: white !important;
+}
+
+/* Медиа-запросы для адаптивности */
+@media (max-width: 1200px) {
+  .document-viewer {
+    width: 95% !important;
+    padding: 1cm !important;
+  }
+}
+
+@media print {
+  .document-viewer {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}
+

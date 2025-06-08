@@ -8,10 +8,11 @@ from routes.user import router as user_router
 from routes.gigachat import router as gigachat_router  
 from routes.template import router as template_router  
 from routes.document import router as document_router
-from routes.file import router as file_router
+#from routes.file import router as file_router
 from routes.formatting import router as formatting_router  
 from routes.chat import router as chat_router  
-from routes.document_analysis import router as document_analysis_router  # Добавляем новый роутер
+from routes.document_analysis import router as document_analysis_router 
+from routes.report_editor import router as report_editor_router
 
 
 #import data.load_data
@@ -30,8 +31,8 @@ async def lifespan(app: FastAPI):
             await session.commit()
 
     yield
-
 app = FastAPI(lifespan=lifespan)
+#app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -53,10 +54,11 @@ app.include_router(router_report, prefix="/api", tags=["reports"])
 app.include_router(gigachat_router, prefix="/api", tags=["gigachat"])
 app.include_router(template_router, prefix="/api", tags=["templates"])  
 app.include_router(document_router, prefix="/api", tags=["documents"])  
-app.include_router(file_router, prefix="/api", tags=["files"])  
+#app.include_router(file_router, prefix="/api", tags=["files"])  
 app.include_router(formatting_router, prefix="/api", tags=["formatting"])
 app.include_router(chat_router, prefix="/api", tags=["chats"]) 
 app.include_router(document_analysis_router, prefix="/api", tags=["document-analysis"])  
+app.include_router(report_editor_router, prefix="/api", tags=["report-editor"])  
 
 @app.get("/")
 async def root():

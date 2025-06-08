@@ -101,7 +101,6 @@ class DocumentAnalysisService:
             )
             chunks = text_splitter.split_text(text_content)
             
-            # Для простоты используем только первые 3 чанка (в продакшн нужно улучшить)
             context = "\n\n".join(chunks[:3]) 
         else:
             context = text_content
@@ -123,10 +122,11 @@ class DocumentAnalysisService:
         response = generate_text_with_params(
             prompt=prompt,
             temperature=0.3,  # Низкая температура для более точных ответов
-            max_tokens=2000
+            max_tokens=5000
         )
         
         return response
+    
     
     async def summarize_document(self, document_id: int, db: AsyncSession) -> str:
         """Создает краткое резюме документа"""

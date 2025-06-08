@@ -10,14 +10,15 @@ def get_gigachat_client():
     """
     Возвращает клиент GigaChat для работы с API.
     """
-    # Укажите ваш ключ авторизации
     credentials = AUTHORIZATION_KEY
 
     giga = GigaChat(
         credentials=credentials,
         verify_ssl_certs=False,  
         scope="GIGACHAT_API_PERS",  
-        model="GigaChat",  
+        model="GigaChat-2-Max",  
+        #model="GigaChat",  
+        #model="GigaChat-pro",
     )
 
     return giga
