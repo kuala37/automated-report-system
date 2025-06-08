@@ -16,6 +16,7 @@ import DocumentStylePage from './pages/DocumentStylePage';
 import FormattingPresetsPage from './pages/FormattingPresetsPage';
 import SettingsPage from './pages/SettingsPage';
 import ChatsPage from './pages/ChatsPage';
+import ReportEditorPage from './pages/ReportEditorPage';
 import ChatWindow from './components/chat/ChatWindow';
 import './theme.css';
 
@@ -43,6 +44,7 @@ function App() {
             <Route path="/chats" element={<ChatsPage />} />
             <Route path="/chats/:chatId" element={<ChatWindow />} />
             <Route path="/settings" element={<SettingsPage />} /> 
+            <Route path="/reports/:reportId/edit" element={<ReportEditorPage />} />
           </Route>
         </Routes>
       </Router>

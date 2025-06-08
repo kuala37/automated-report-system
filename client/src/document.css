@@ -1,0 +1,87 @@
+.document-viewer-container {
+  font-family: 'Times New Roman', Times, serif !important;
+  font-size: 12pt !important;
+  line-height: 1.15 !important;
+  color: #000000 !important;
+  background: white !important;
+  min-height: 29.7cm !important;
+  max-width: 21cm !important;
+  margin: 0 auto !important;
+  padding: 2.54cm 1.91cm !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e0e0e0 !important;
+  position: relative !important;
+}
+
+/* Изолируем стили только для контейнера документа */
+.document-viewer-container p,
+.document-viewer-container h1,
+.document-viewer-container h2,
+.document-viewer-container h3,
+.document-viewer-container h4,
+.document-viewer-container h5,
+.document-viewer-container h6 {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.15 !important;
+  word-wrap: break-word !important;
+  font-family: inherit !important;
+}
+
+.document-viewer-container .empty-paragraph {
+  height: 1.15em !important;
+  min-height: 1.15em !important;
+}
+
+.document-viewer-container strong {
+  font-weight: bold !important;
+}
+
+.document-viewer-container em {
+  font-style: italic !important;
+}
+
+.document-viewer-container u {
+  text-decoration: underline !important;
+}
+
+.document-viewer-container table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.document-viewer-container td,
+.document-viewer-container th {
+  border: 1px solid #000000 !important;
+  padding: 0.2em 0.3em !important;
+  text-align: left !important;
+  vertical-align: top !important;
+  font-size: inherit !important;
+}
+
+.document-viewer-container [data-paragraph-id]:hover {
+  background-color: rgba(0, 120, 212, 0.05) !important;
+  cursor: text !important;
+}
+
+.document-viewer-container ::selection {
+  background-color: #0078d4 !important;
+  color: white !important;
+}
+
+@media (max-width: 1200px) {
+  .document-viewer-container {
+    width: 95% !important;
+    padding: 1cm !important;
+  }
+}
+
+@media print {
+  .document-viewer-container {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+}

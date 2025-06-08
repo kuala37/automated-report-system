@@ -215,7 +215,6 @@ export const reports = {
 };
 
 
-// GigaChat endpoints
 export const gigachat = {
   generateText: (prompt: string) =>
     post('/gigachat/generate-text', { prompt }),
@@ -283,7 +282,6 @@ export const chat = {
 
 export const documentAnalysis = {
   uploadDocument: (formData: FormData) => {
-    // Важно: для FormData мы должны использовать специальную обработку запроса
     const token = localStorage.getItem('token');
     
     return fetch(`${API_BASE_URL}/document-analysis/upload`, {
@@ -304,4 +302,49 @@ export const documentAnalysis = {
   
   summarizeDocument: (documentId: number) => 
     post(`/document-analysis/summarize/${documentId}`)
+};
+
+export const reportEditor = {
+  generateReportChat: async (reportId: number) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_BASE_URL}/report-editor/reports/${reportId}/generate-with-chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': token }),
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to generate chat for report');
+    }
+    
+    return response.json();
+  },
+  
+  getReportHtml: (reportId: number, version?: number) => {
+    const params = version ? `?version=${version}` : '';
+    return get(`/report-editor/reports/${reportId}/html${params}`);
+  },
+  
+  editReport: (reportId: number, editCommand: any) => 
+    post(`/report-editor/reports/${reportId}/edit`, editCommand),
+  
+  processChatCommand: (reportId: number, chatId: number, command: { text: string }) => 
+    post(`/report-editor/reports/${reportId}/chat/${chatId}/process-command`, command),
+  
+  saveDocument: (reportId: number) => 
+    post(`/report-editor/reports/${reportId}/save`, {}),
+  
+  getEditSuggestions: (reportId: number, data: { selectedText: string, chatId: number }) => 
+    post(`/report-editor/reports/${reportId}/suggestions`, data),
+
+  createNewVersion: (reportId: number, description: string = '') => 
+    post(`/report-editor/reports/${reportId}/versions`, { description }),
+  
+  getVersionHistory: (reportId: number) => 
+    get(`/report-editor/reports/${reportId}/versions`),
+  
+  restoreVersion: (reportId: number, version: number) => 
+    post(`/report-editor/reports/${reportId}/versions/${version}/restore`, {}),
 };
