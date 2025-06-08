@@ -161,3 +161,16 @@ class DocumentService:
             return GostStyle()
             
         return custom_style
+
+    # Добавляем асинхронный метод для генерации отчета
+
+    async def generate_report_async(self, title, sections, format='docx', formatting_styles=None):
+        """Асинхронная версия generate_report для использования с await"""
+        import asyncio
+        # Используем run_in_executor для выполнения синхронной функции в отдельном потоке
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None, 
+            self.generate_report,
+            title, sections, format, formatting_styles
+        )

@@ -3,6 +3,7 @@ from docx.shared import Inches, Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_SECTION, WD_ORIENT
 import os
+import re
 from generation.generate_text_langchain import generate_text, generate_text_with_params
 
 class GostStyle:
@@ -40,10 +41,11 @@ class GostStyle:
             self.list_styles = None
 
 class WordDocumentGenerator:
-    def __init__(self, gost_style=None):
+    def __init__(self, gost_style=None, gost_type=None):
         self.document = Document()
         self.style = gost_style if gost_style else GostStyle()
         self._apply_gost_formatting()
+        
 
     def _apply_gost_formatting(self):
         """Применить форматирование документа на основе выбранного стиля"""
@@ -230,20 +232,246 @@ class WordDocumentGenerator:
             
         self.document.add_paragraph()  # Добавляем пустой абзац после заголовка
 
-    # Остальные методы останутся без изменений
+    def _parse_markdown_content(self, content):
+        """Улучшенный парсер markdown контента"""
+        lines = content.split('\n')
+        parsed_content = []
+        current_list = None
+        i = 0
+        
+        while i < len(lines):
+            line = lines[i].strip()
+            
+            # Пропускаем пустые строки
+            if not line:
+                if current_list:
+                    parsed_content.append(current_list)
+                    current_list = None
+                i += 1
+                continue
+            
+            # Обрабатываем заголовки (должны идти отдельными блоками)
+            if line.startswith('####'):
+                if current_list:
+                    parsed_content.append(current_list)
+                    current_list = None
+                title = line.replace('###', '').strip()
+                parsed_content.append({'type': 'heading', 'level': 4, 'text': title})
+                i += 1
+                continue
+
+            elif line.startswith('###'):
+                if current_list:
+                    parsed_content.append(current_list)
+                    current_list = None
+                title = line.replace('###', '').strip()
+                parsed_content.append({'type': 'heading', 'level': 3, 'text': title})
+                i += 1
+                continue
+                
+            elif line.startswith('##'):
+                if current_list:
+                    parsed_content.append(current_list)
+                    current_list = None
+                title = line.replace('##', '').strip()
+                parsed_content.append({'type': 'heading', 'level': 2, 'text': title})
+                i += 1
+                continue
+                
+            elif line.startswith('#'):
+                if current_list:
+                    parsed_content.append(current_list)
+                    current_list = None
+                title = line.replace('#', '').strip()
+                parsed_content.append({'type': 'heading', 'level': 1, 'text': title})
+                i += 1
+                continue
+            
+            # Обрабатываем списки
+            elif line.startswith(('• ', '- ', '* ')) or re.match(r'^\d+\.', line):
+                if not current_list:
+                    current_list = {'type': 'list', 'items': [], 'list_type': 'bullet'}
+                
+                # Определяем тип списка
+                if line.startswith(('• ', '- ', '* ')):
+                    text = re.sub(r'^[•\-\*]\s*', '', line).strip()
+                    current_list['list_type'] = 'bullet'
+                else:  # Нумерованный список
+                    text = re.sub(r'^\d+\.\s*', '', line).strip()
+                    current_list['list_type'] = 'number'
+                
+                current_list['items'].append(text)
+                i += 1
+                continue
+            
+            # Обычный текст - завершаем текущий список и добавляем параграф
+            else:
+                if current_list:
+                    parsed_content.append(current_list)
+                    current_list = None
+                
+                # Собираем многострочный параграф
+                paragraph_lines = [line]
+                j = i + 1
+                
+                # Продолжаем читать строки, пока не встретим пустую строку, заголовок или список
+                while j < len(lines):
+                    next_line = lines[j].strip()
+                    
+                    # Прерываем на пустой строке, заголовке или списке
+                    if (not next_line or 
+                        next_line.startswith(('#', '• ', '- ', '* ')) or 
+                        re.match(r'^\d+\.', next_line)):
+                        break
+                    
+                    paragraph_lines.append(next_line)
+                    j += 1
+                
+                # Объединяем строки в один параграф
+                full_paragraph = ' '.join(paragraph_lines).strip()
+                if full_paragraph:
+                    parsed_content.append({'type': 'paragraph', 'text': full_paragraph})
+                
+                i = j
+                continue
+        
+        # Добавляем последний список, если он есть
+        if current_list:
+            parsed_content.append(current_list)
+        
+        return parsed_content
+
+    def _parse_inline_formatting(self, text):
+        """Улучшенный парсер inline форматирования"""
+        if not text:
+            return [{'text': '', 'bold': False, 'italic': False}]
+        
+        parts = []
+        current_pos = 0
+        
+        # Паттерн для поиска форматирования: **жирный** или *курсив*
+        pattern = r'(\*\*[^*]+\*\*|\*[^*]+\*)'
+        
+        for match in re.finditer(pattern, text):
+            # Добавляем текст до форматирования
+            if match.start() > current_pos:
+                plain_text = text[current_pos:match.start()]
+                if plain_text:
+                    parts.append({'text': plain_text, 'bold': False, 'italic': False})
+            
+            # Обрабатываем форматированный текст
+            matched_text = match.group()
+            if matched_text.startswith('**') and matched_text.endswith('**'):
+                # Жирный текст
+                clean_text = matched_text[2:-2]
+                parts.append({'text': clean_text, 'bold': True, 'italic': False})
+            elif matched_text.startswith('*') and matched_text.endswith('*'):
+                # Курсив (только если это не часть жирного текста)
+                clean_text = matched_text[1:-1]
+                parts.append({'text': clean_text, 'bold': False, 'italic': True})
+            
+            current_pos = match.end()
+        
+        # Добавляем оставшийся текст
+        if current_pos < len(text):
+            remaining_text = text[current_pos:]
+            if remaining_text:
+                parts.append({'text': remaining_text, 'bold': False, 'italic': False})
+        
+        return parts if parts else [{'text': text, 'bold': False, 'italic': False}]
+
+    def add_formatted_content(self, content):
+        """Добавляет контент с улучшенной поддержкой markdown"""
+        # Предварительная очистка контента
+        cleaned_content = self._clean_markdown_content(content)
+        parsed_content = self._parse_markdown_content(cleaned_content)
+        
+        for item in parsed_content:
+            if item['type'] == 'heading':
+                self._add_formatted_heading(item['text'], item['level'])
+            elif item['type'] == 'paragraph':
+                if item['text'].strip():  # Пропускаем пустые параграфы
+                    self._add_formatted_paragraph(item['text'])
+            elif item['type'] == 'list':
+                self._add_formatted_list(item['items'], item.get('list_type', 'bullet'))
+
+    def _clean_markdown_content(self, content):
+        """Очищает и нормализует markdown контент"""
+        # Убираем лишние пробелы и переносы
+        lines = content.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            # Убираем лишние пробелы в начале и конце
+            cleaned_line = line.strip()
+            
+            # Нормализуем маркеры списков
+            if cleaned_line.startswith('•'):
+                cleaned_line = '• ' + cleaned_line[1:].strip()
+            elif re.match(r'^\d+\.', cleaned_line):
+                # Нормализуем нумерацию
+                match = re.match(r'^(\d+)\.\s*(.*)', cleaned_line)
+                if match:
+                    cleaned_line = f"{match.group(1)}. {match.group(2)}"
+            
+            cleaned_lines.append(cleaned_line)
+        
+        return '\n'.join(cleaned_lines)
+
+    def _add_formatted_heading(self, text, level):
+        """Добавляет заголовок с форматированием"""
+        # Ограничиваем уровень заголовков
+        level = min(level, 6)
+        heading = self.document.add_heading('', level=level)
+        
+        # Парсим inline форматирование
+        formatted_parts = self._parse_inline_formatting(text)
+        
+        for part in formatted_parts:
+            run = heading.add_run(part['text'])
+            run.bold = part['bold']
+            run.italic = part['italic']
+        
+        # Применяем кастомное форматирование
+        self._apply_font_to_heading(heading, level)
+
+    def _add_formatted_paragraph(self, text):
+        """Добавляет параграф с inline форматированием"""
+        paragraph = self.document.add_paragraph()
+        
+        # Парсим inline форматирование
+        formatted_parts = self._parse_inline_formatting(text)
+        
+        for part in formatted_parts:
+            run = paragraph.add_run(part['text'])
+            run.bold = part['bold']
+            run.italic = part['italic']
+
+    def _add_formatted_list(self, items, list_type='bullet'):
+        """Добавляет список с форматированием"""
+        for item in items:
+            if list_type == 'bullet':
+                paragraph = self.document.add_paragraph('', style='List Bullet')
+            else:
+                paragraph = self.document.add_paragraph('', style='List Number')
+            
+            # Парсим inline форматирование для элемента списка
+            formatted_parts = self._parse_inline_formatting(item)
+            
+            for part in formatted_parts:
+                run = paragraph.add_run(part['text'])
+                run.bold = part['bold']
+                run.italic = part['italic']
+    
     def add_section(self, title, content, heading_level=1):
         """Добавить раздел с заголовком и содержимым"""
         # Добавляем заголовок с соответствующим уровнем
         heading = self.document.add_heading(title, level=heading_level)
-        
         self._apply_font_to_heading(heading, heading_level)
 
-        # Разбиваем контент на абзацы и добавляем каждый абзац
-        paragraphs = content.split("\n")
-        for para_text in paragraphs:
-            if para_text.strip():  # Пропускаем пустые строки
-                self.add_paragraph_text(para_text)
-    
+        # Добавляем содержимое с поддержкой markdown
+        self.add_formatted_content(content)
+
     def add_generated_section(self, prompt, section_title, heading_level=1, **generation_params):
         """Добавить раздел с автоматически сгенерированным содержимым"""
         # Генерация контента с использованием ИИ сервиса
@@ -253,9 +481,18 @@ class WordDocumentGenerator:
             print(f"Ошибка генерации контента: {str(e)}")
             content = f"[Ошибка генерации контента: {str(e)}]"
         
-        # Добавление раздела с сгенерированным контентом
-        self.add_section(section_title, content, heading_level)
-
+        # Добавляем заголовок раздела
+        heading = self.document.add_heading(section_title, level=heading_level)
+        self._apply_font_to_heading(heading, heading_level)
+        
+        # Очищаем и нормализуем контент перед добавлением
+        print(f"🔍 Исходный контент от ИИ ({len(content)} символов):")
+        print(f"'{content[:200]}...'")
+        
+        # Добавляем сгенерированный контент с улучшенным форматированием
+        self.add_formatted_content(content)
+        
+        print(f"✅ Контент добавлен в документ")
         return content
     
     def add_paragraph_text(self, text):
@@ -283,3 +520,42 @@ class WordDocumentGenerator:
     def save(self, filename):
         """Сохранить документ по указанному пути"""
         self.document.save(filename)
+
+    # Добавление методов для анализа и выполнения команд редактирования
+    def update_paragraph_text(self, paragraph_index, new_text):
+        """Обновляет текст конкретного параграфа"""
+        if 0 <= paragraph_index < len(self.document.paragraphs):
+            paragraph = self.document.paragraphs[paragraph_index]
+            # Очищаем существующие runs
+            for i in range(len(paragraph.runs)):
+                paragraph.runs[0]._element.getparent().remove(paragraph.runs[0]._element)
+            
+            # Добавляем новый run с обновленным текстом
+            run = paragraph.add_run(new_text)
+            return True
+        return False
+
+    def replace_text(self, old_text, new_text):
+        """Заменяет все вхождения текста в документе"""
+        found = False
+        for paragraph in self.document.paragraphs:
+            if old_text in paragraph.text:
+                for run in paragraph.runs:
+                    run.text = run.text.replace(old_text, new_text)
+                found = True
+        return found
+
+    def format_text_in_paragraph(self, paragraph_index, start, end, formatting):
+        """Применяет форматирование к части текста в параграфе"""
+        if 0 <= paragraph_index < len(self.document.paragraphs):
+            paragraph = self.document.paragraphs[paragraph_index]
+            text = paragraph.text
+            
+            if start < 0 or end > len(text) or start >= end:
+                return False
+                
+            # Сложная логика для форматирования части текста
+            # ...
+            
+            return True
+        return False

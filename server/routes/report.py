@@ -1,4 +1,3 @@
-
 from typing import List, Optional
 
 from sqlalchemy import select
@@ -14,6 +13,7 @@ from pydantic import BaseModel
 import json
 
 from routes.user import get_current_user
+from services.report_chat_service import ReportChatService
 
 class SectionSchema(BaseModel):
     title: str
@@ -226,4 +226,31 @@ async def delete_report(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
+        )
+
+# Добавляем новый маршрут для создания отчета с чатом
+@router.post("/generate-report-with-chat/")
+async def generate_report_with_chat(
+    report_data: ReportCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Генерирует отчет и создает связанный с ним чат"""
+    try:
+        # Используем интеграционный сервис
+        report_chat_service = ReportChatService()
+        report, chat = await report_chat_service.create_report_with_chat(
+            db, current_user.id, report_data.dict()
+        )
+        
+        return {
+            "report_id": report.id,
+            "chat_id": chat.id,
+            "status": "completed",
+            "message": "Report generated successfully with chat"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to generate report: {str(e)}"
         )
